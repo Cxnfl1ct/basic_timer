@@ -31,7 +31,7 @@ int evalInput() {
 }
 
 void processInput() {
-  int i, j, tmp;
+  int tmp;
 
   _input = input;
   input = evalInput(); // Reset timer and process input
@@ -40,18 +40,18 @@ void processInput() {
     inputTime++;
   } else {
     inputTime = 0;
-    i, j = 0; // Reset input
   }
 
   delay(200);
 }
 
 void drawTimeUnit(int type, bool empty) {
+  int t = time[type];
+
   lcd.setCursor(initPos + type * 3, 0);
 
-  if (!empty)
-  {
-    if (time[type] < 10)
+  if (!empty) {
+    if (t < 10)
       lcd.print("0" + String(time[type]));
     else
       lcd.print(String(time[type]));
@@ -61,8 +61,7 @@ void drawTimeUnit(int type, bool empty) {
 }
 
 void timerEnd() {
-  int i;
-
+  int i = 0;
   lcd.setCursor(3, 1);
   lcd.print("Time's up!");
 
@@ -70,16 +69,19 @@ void timerEnd() {
     i++;
     delay(500);
 
-    if (i >= 2)
-    {
-      i = 0;
-      digitalWrite(Buzzer_Pin, LOW);
-      lcd.display();
+    switch (i) {
+      case 2: {
+        i = 0;
+        digitalWrite(Buzzer_Pin, LOW);
+        lcd.display();
+        break;
+      }
+      case 1: {
+        digitalWrite(Buzzer_Pin, HIGH);
+        lcd.noDisplay();
+        break;
+      }
     }
-
-    if (i == 1)
-      digitalWrite(Buzzer_Pin, HIGH);
-      lcd.noDisplay();
   }
 
   lcd.display();
@@ -134,8 +136,11 @@ void timer() {
 
 void setTime(void) {
   int i = 0;
+  int threshold;
 
   for (sp=0; sp<3; sp++) {
+    threshold = sp == 0 ? 23 : 59;
+
     while (evalInput() != 0 && inputTime == 0) {
       i++;
       delay(100);
@@ -151,26 +156,14 @@ void setTime(void) {
       if (evalInput() == 2) { // Up key
         time[sp] += 1; // Increment time
 
+        if (time[sp] >= threshold) time[sp] = 0; // If time is greater than allowed value, revert it
         drawTimeUnit(sp, false);
-        if (sp == 0) {
-          if (time[sp] >= 24) time[sp] = 0; // If time is greater than allowed value, revert it
-          drawTimeUnit(sp, false);
-        } else {
-          if (time[sp] >= 60) time[sp] = 0; // If time is greater than allowed value, revert it
-          drawTimeUnit(sp, false);
-        }
       }
 
       if (evalInput() == 3) { // Down key
         time[sp] -= 1; // Decrement time
 
-        if (sp == 0) {
-          if (time[sp] < 0) time[sp] = 23; // If time is minus, wrap back to highest allowed value
-          drawTimeUnit(sp, false);
-        } else {
-          if (time[sp] < 0) time[sp] = 59; // If time is minus, wrap back to highest allowed value
-          drawTimeUnit(sp, false);
-        }
+        if (time[sp] < 0) time[sp] = threshold; // If time is minus, wrap back to highest allowed value
         drawTimeUnit(sp, false);
       }
     }
@@ -187,7 +180,7 @@ void setup(void) {
   lcd.setCursor(initPos, 0); // Reset cursor
   drawTime();
 
-  pinMode(Buzzer_Pin, OUTPUT);
+  pinMode(Buzzer_Pin, OUTPUT); // Initialize buzzer
 
   for (;;) { // User Interface task
     while (evalInput() != 0) continue; // Hang while SELECT pin is not pressed
