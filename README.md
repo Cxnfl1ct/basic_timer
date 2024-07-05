@@ -1,5 +1,5 @@
 # basic_timer
-Basic timer written for Arduino Uno
+Basic lightweight timer written for Arduino Uno
 
 This software requires 16x2 LCD shield for arduino.
 It can be bought on link below:
